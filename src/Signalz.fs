@@ -65,3 +65,20 @@ type Signal<'T when 'T : equality> (expr: unit -> 'T) as this =
         member __.Ignore s = ignore <| observed.Remove s
 
 type 'a signal when 'a : equality = Signal<'a>      // alias 
+
+[<RequireQualifiedAccess>]
+module Signal = 
+    let private (~~) (s:'a signal) : 'a = s.Value
+    let constant x = Signal (fun _ -> x)
+    let map f _1 = Signal (fun _ -> f ~~_1)
+    let map2 f _1 _2 = Signal (fun _ -> f ~~_1 ~~_2)
+    let map3 f _1 _2 _3 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3)
+    let map4 f _1 _2 _3 _4 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3 ~~_4)
+    let map5 f _1 _2 _3 _4 _5 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3 ~~_4 ~~_5)
+    let map6 f _1 _2 _3 _4 _5 _6 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3 ~~_4 ~~_5 ~~_6)
+    let map7 f _1 _2 _3 _4 _5 _6 _7 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3 ~~_4 ~~_5 ~~_6 ~~_7)
+    let map8 f _1 _2 _3 _4 _5 _6 _7 _8 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3 ~~_4 ~~_5 ~~_6 ~~_7 ~~_8)
+    let filter predicate default' signal = Signal (fun _ -> if predicate ~~signal then ~~signal else default')
+    let foldp folder init signal = 
+        let state = ref init
+        Signal (fun _ -> state := (folder ~~signal !state); !state)
