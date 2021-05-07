@@ -1,6 +1,11 @@
 ﻿namespace Signalz
 open System.Collections.Generic
 
+[<AutoOpen>]
+module internal Utils = 
+    let undefined<'a> : 'a = Unchecked.defaultof<'a>
+    let safewrap e = fun () -> try Ok (e ()) with e -> Error e
+
 module internal Internals = 
     type Signal = 
         abstract member ReCompute : unit -> unit
@@ -17,7 +22,7 @@ module internal Internals =
 
 open Internals
 type Signal<'T when 'T : equality> (expr: unit -> 'T) as this = 
-    let mutable expr = expr
+    let mutable expr = safewrap expr
     let mutable value = expr ()
     let observers = new HashSet<Signal>()
     let observed = new ResizeArray<Signal>()
@@ -40,9 +45,9 @@ type Signal<'T when 'T : equality> (expr: unit -> 'T) as this =
     member __.Value =  
         ignore <| observers.Add caller.Value
         caller.Value.Observe this
-        value
+        match value with Ok v -> v | Error e -> raise e
     member private __.Update (expr':unit -> 'T) = 
-        expr <- expr'
+        expr <- safewrap expr'
         recompute ()
 
     static member (<~) (s:Signal<'T>, v:'T) = s.Update (fun () -> v)
