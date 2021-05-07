@@ -4,7 +4,7 @@ open System.Collections.Generic
 [<AutoOpen>]
 module internal Utils = 
     let undefined<'a> : 'a = Unchecked.defaultof<'a>
-    let safewrap e = fun () -> try Ok (e ()) with e -> Error e
+    let safewrap e = fun () -> try Ok (e ()) with ex -> Error ex
 
 module internal Internals = 
     type Signal = 
@@ -23,9 +23,10 @@ module internal Internals =
 open Internals
 type Signal<'T when 'T : equality> (expr: unit -> 'T) as this = 
     let mutable expr = safewrap expr
-    let mutable value = expr ()
     let observers = new HashSet<Signal>()
     let observed = new ResizeArray<Signal>()
+
+    let mutable value = caller.WithValue(this, fun () -> expr ())
 
     let recompute () = 
         for s in observed do s.Ignore this
@@ -40,16 +41,22 @@ type Signal<'T when 'T : equality> (expr: unit -> 'T) as this =
             for observer in observers' do 
                 observer.ReCompute ()
 
-    do recompute ()
+    do 
+        let observers' = Seq.toList observers
+        observers.Clear()
+        for observer in observers' do 
+            observer.ReCompute ()
 
     member __.Value =  
         ignore <| observers.Add caller.Value
         caller.Value.Observe this
         match value with Ok v -> v | Error e -> raise e
+
     member private __.Update (expr':unit -> 'T) = 
         expr <- safewrap expr'
         recompute ()
 
+    static member (~~) (s:Signal<_>) = s.Value
     static member (<~) (s:Signal<'T>, v:'T) = s.Update (fun () -> v)
 
     interface Signal with 
