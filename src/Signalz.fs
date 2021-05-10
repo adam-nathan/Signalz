@@ -75,3 +75,8 @@ module Signal =
     let map8 f _1 _2 _3 _4 _5 _6 _7 _8 = Signal (fun _ -> f ~~_1 ~~_2 ~~_3 ~~_4 ~~_5 ~~_6 ~~_7 ~~_8)
     let foldp f acc x = let state = ref ~~acc in Signal (fun _ -> state := f !state ~~x; !state)
     let filter f x = foldp (fun prev next -> if f next then next else prev) (constant ~~x) x
+    let merge x y = 
+        let out = constant ~~x
+        ignore <| Signal (fun _ -> out <~ ~~x) 
+        ignore <| Signal (fun _ -> out <~ ~~y) 
+        out
