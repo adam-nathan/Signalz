@@ -80,3 +80,6 @@ module Signal =
         ignore <| Signal (fun _ -> out <~ ~~x) 
         ignore <| Signal (fun _ -> out <~ ~~y) 
         out
+
+    let inline sum (s:'a signal) = foldp (+) (constant LanguagePrimitives.GenericZero<'a>) s
+    let count s = foldp (fun acc _ -> acc + 1) (constant 0) s
